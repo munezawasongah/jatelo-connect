@@ -35,6 +35,36 @@ services:
       postgres:
         condition: service_healthy
 
+  worker:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    command: ["node", "src/worker.js"]
+    restart: unless-stopped
+    network_mode: host
+    cap_add: [NET_ADMIN]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://jc_app:${APP_DB_PASSWORD}@127.0.0.1:5432/jatelo
+      DATABASE_OWNER_URL: postgres://jatelo:${POSTGRES_PASSWORD}@127.0.0.1:5432/jatelo
+    depends_on:
+      api:
+        condition: service_started
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./dashboard/dist:/srv/dashboard:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_started
+
   radius:
     build: ./radius
     restart: unless-stopped
@@ -52,3 +82,5 @@ services:
 
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:

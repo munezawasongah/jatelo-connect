@@ -1,0 +1,37 @@
+# Jatelo Connect — HTTPS front door (certificates from Let's Encrypt, automatic).
+{
+	email {$ACME_EMAIL}
+}
+
+# Operator dashboard (built in the next step) and its API
+{$APP_DOMAIN} {
+	encode gzip
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8080
+	}
+	handle {
+		root * /srv/dashboard
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+# Public API: mobile apps, SMS gateway webhooks
+{$API_DOMAIN} {
+	encode gzip
+	reverse_proxy 127.0.0.1:8080
+}
+
+# Captive portal, renewal and sign-up pages
+{$PORTAL_DOMAIN} {
+	encode gzip
+	@internal path /internal/*
+	respond @internal 404
+	reverse_proxy 127.0.0.1:8080
+}
+
+# Expired PPPoE subscribers: their routers send all plain-HTTP browsing here.
+# Any unknown host on port 80 is redirected to the renewal page.
+http:// {
+	redir https://{$PORTAL_DOMAIN}/renew 302
+}

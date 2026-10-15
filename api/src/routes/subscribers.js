@@ -40,7 +40,7 @@ customers.get('/', h(async (req, res) => {
       `SELECT cu.*,
          (SELECT count(*)::int FROM subscriptions s WHERE s.customer_id = cu.id AND s.status <> 'cancelled') AS subscriptions,
          (SELECT count(*)::int FROM vouchers v WHERE v.customer_id = cu.id) AS vouchers,
-         (SELECT coalesce(sum(amount), 0) FROM payments p WHERE p.customer_id = cu.id AND p.status = 'success') AS total_paid
+         (SELECT coalesce(sum(amount), 0)::bigint FROM payments p WHERE p.customer_id = cu.id AND p.status = 'success') AS total_paid
        FROM customers cu ${w} ORDER BY cu.created_at DESC LIMIT ${q.limit} OFFSET ${q.offset}`, vals);
     const { rows: [{ total }] } = await c.query(`SELECT count(*)::int AS total FROM customers cu ${w}`, vals);
     return { customers: rows.map(({ pin_hash: _p, ...r }) => r), total };

@@ -32,6 +32,31 @@ const T = {
     rn: '{brand}: twakiriye {amount}. Interineti yawe ikora gushika {expires}. Murakoze!',
     en: '{brand}: payment of {amount} received. Your internet is active until {expires}. Thank you!',
   },
+  router_offline: {
+    fr: 'Jatelo Connect : le routeur "{router}" est hors ligne depuis {since}. Vérifiez le courant et la connexion internet.',
+    rn: 'Jatelo Connect: router "{router}" ntiri ku murongo kuva {since}. Raba umuriro n\'interineti.',
+    en: 'Jatelo Connect: router "{router}" has been offline since {since}. Check power and the internet link.',
+  },
+  router_online: {
+    fr: 'Jatelo Connect : le routeur "{router}" est de nouveau en ligne.',
+    rn: 'Jatelo Connect: router "{router}" yagarutse ku murongo.',
+    en: 'Jatelo Connect: router "{router}" is back online.',
+  },
+  account_read_only: {
+    fr: 'Jatelo Connect : votre abonnement est en retard. Vos clients restent connectés 14 jours ; renouvelez pour éviter la coupure.',
+    rn: 'Jatelo Connect: ifatabuguzi ryanyu ryararenze igihe. Abakiriya banyu bazobandanya imisi 14; muvugurure kugira ntibahagarikwe.',
+    en: 'Jatelo Connect: your subscription is overdue. Your customers stay online for 14 days; renew to avoid a cut.',
+  },
+  account_suspended: {
+    fr: 'Jatelo Connect : votre compte est suspendu, vos clients ne peuvent plus se connecter. Renouvelez pour rétablir le service.',
+    rn: 'Jatelo Connect: konti yanyu yarahagaritswe, abakiriya ntibagishobora kwinjira. Muvugurure kugira bigaruke.',
+    en: 'Jatelo Connect: your account is suspended and customers cannot log in. Renew to restore service.',
+  },
+  unmatched_payments: {
+    fr: 'Jatelo Connect : {count} paiement(s) reçu(s) sans correspondance. Vérifiez la page Paiements.',
+    rn: 'Jatelo Connect: {count} amafaranga yakiriwe ataramenyekana. Raba urupapuro rw\'amafaranga.',
+    en: 'Jatelo Connect: {count} payment(s) received but not matched. Check the Payments page.',
+  },
 };
 
 export function render(key, lang = 'fr', vars = {}) {

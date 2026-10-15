@@ -18,6 +18,8 @@ import { sites, packages, plans } from './routes/catalog.js';
 import { vouchers, agents, agentSelf } from './routes/vouchers.js';
 import { customers, subscriptions } from './routes/subscribers.js';
 import { settings, staff, auditLog } from './routes/account.js';
+import { portalPages, portalApi } from './routes/portal.js';
+import { payments, paymentChannels, smsGateways, serviceRequests, smsWebhook } from './routes/payments.js';
 import { syncAllPeers } from './services/wireguard.js';
 
 export const logger = pino({
@@ -40,6 +42,11 @@ export function createApp() {
 
   // Router-only endpoints (tunnel source check inside)
   app.use('/internal', internalRoutes);
+
+  // Public: captive portal, renewal and sign-up pages, their JSON API, and the SMS gateway webhook
+  app.use('/portal-api', portalApi);
+  app.use('/api/sms-gateway', smsWebhook);
+  app.use(portalPages);
 
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
@@ -68,6 +75,10 @@ export function createApp() {
   tenant.use('/agents', agents);
   tenant.use('/customers', customers);
   tenant.use('/subscriptions', subscriptions);
+  tenant.use('/payments', payments);
+  tenant.use('/payment-channels', paymentChannels);
+  tenant.use('/sms-gateways', smsGateways);
+  tenant.use('/service-requests', serviceRequests);
   tenant.use('/agent', requireRole('agent'), agentSelf);
   app.use('/api', tenant);
 

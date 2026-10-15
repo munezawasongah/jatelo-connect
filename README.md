@@ -11,7 +11,10 @@ and run their MikroTik routers from one dashboard.
 | `db/migrations/` | PostgreSQL schema, RADIUS decision functions, row-level security, roles |
 | `radius/` | FreeRADIUS 3.2 configuration and Dockerfile |
 | `api/` | Node.js API (Express): auth, routers, vouchers, subscribers, agents, staff |
-| `docker-compose.yml` | Production stack: PostgreSQL, API, FreeRADIUS |
+| `api/src/portal/` | Captive portal, PPPoE renewal and sign-up pages (French, Kirundi, English) |
+| `api/src/worker.js` | Background worker: SMS delivery, expiries, reminders, router health, bandwidth, account status |
+| `caddy/Caddyfile` | HTTPS for the dashboard, API and portal domains; walled-subscriber redirect |
+| `docker-compose.yml` | Production stack: PostgreSQL, API, worker, FreeRADIUS, Caddy |
 
 ## How access works
 
@@ -22,6 +25,19 @@ and run their MikroTik routers from one dashboard.
 5. Expired PPPoE subscribers stay connected but are walled to the payment page (`jc-expired` address list).
 
 Non-MikroTik devices (Ruijie, Omada, UniFi) send RADIUS from a fixed public IP and are matched through the `nas` table.
+
+## How customers pay (before wallet API approval)
+
+1. On the portal the customer picks a package, chooses Lumicash or EcoCash and enters their phone number.
+2. They pay the operator's merchant number from their phone (USSD), adding the reference shown.
+3. The operator's merchant phone runs the **SMS Gateway for Android** app (sms-gate.app). It forwards the wallet's
+   confirmation SMS to `POST /api/sms-gateway/<token>/inbound`.
+4. The platform reads amount, payer phone and transaction id. Same phone + same amount + recent = paid automatically.
+   Otherwise the customer types the transaction id from their SMS on the portal.
+5. The voucher code appears on screen, the phone logs in automatically, and the code + a recovery PIN arrive by SMS.
+
+The same gateway phone sends all outgoing SMS (receipts, reminders, OTP). PPPoE subscribers renew the same way:
+reminder and expiry SMS include the amount, merchant number and a reference, and paying from their own phone renews them.
 
 ## API overview
 
@@ -36,6 +52,10 @@ All tenant routes need `Authorization: Bearer <access_token>`.
 | Hotspot | `/api/vouchers` (batches, export CSV, counter sale, disable/enable, reset devices, extend) |
 | Resellers | `/api/agents` (float top-up, ledger), `/api/agent` (agent self-service) |
 | Subscribers | `/api/customers`, `/api/subscriptions` (create, renew, suspend, resume, cancel, disconnect) |
+| Payments | `/api/payments` (list, confirm by transaction id or by hand, cancel, inbound SMS), `/api/payment-channels/:wallet` |
+| SMS | `/api/sms-gateways` (webhook URL shown once, test send) |
+| Requests | `/api/service-requests` (from the public sign-up page) |
+| Public | `/h/:routerId` portal, `/renew`, `/join/:slug`, `/portal-api/*`, `/api/sms-gateway/:token/inbound` |
 | Routers only | `/internal/routers/register`, `/internal/routers/hotspot-file/:name` (tunnel source only) |
 
 ## Development
