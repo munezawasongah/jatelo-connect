@@ -6,6 +6,7 @@ import { config } from './config.js';
 import { closePools } from './db.js';
 import { migrate } from './migrate.js';
 import * as jobs from './jobs.js';
+import { syncAllPeers } from './services/wireguard.js';
 
 const log = pino({ level: config.LOG_LEVEL, base: { service: 'worker' } });
 
@@ -23,6 +24,8 @@ export const SCHEDULE = [
   ['unmatched', jobs.flagUnmatchedPayments, 1800],
   ['tenant-status', jobs.updateTenantStatuses, 3600],
   ['housekeeping', jobs.housekeeping, 21600],
+  // Re-add router peers if the WireGuard hub was restarted (peers are runtime state)
+  ['wg-sync', syncAllPeers, 300],
 ];
 
 function start() {
