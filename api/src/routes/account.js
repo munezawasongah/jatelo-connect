@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import { withTenant, asOwner } from '../db.js';
 import { h, parse, notFound, badRequest, conflict, forbidden, audit, zUuid, zPhone, zPage } from '../lib/http.js';
 import { requireRole } from '../middleware/auth.js';
+import { config } from '../config.js';
 
 export const settings = Router();
 export const staff = Router();
@@ -35,7 +36,7 @@ settings.get('/', h(async (req, res) => {
     `SELECT id, name, slug, country, currency, language, timezone, phone, email, tier, status, trial_ends_at, paid_until,
             max_routers, max_active_users, settings, created_at FROM tenants WHERE id = $1`, [req.tenantId]));
   if (!t) throw notFound('Account');
-  res.json({ account: t });
+  res.json({ account: t, portal_url: config.PORTAL_URL.replace(/\/$/, ''), api_url: config.PUBLIC_API_URL.replace(/\/$/, '') });
 }));
 
 settings.patch('/', requireRole('owner', 'manager'), h(async (req, res) => {
@@ -50,11 +51,19 @@ settings.patch('/', requireRole('owner', 'manager'), h(async (req, res) => {
         RETURNING id, name, slug, phone, email, language, settings`,
       [b.name ?? null, b.phone ?? null, b.email ?? null, b.language ?? null, JSON.stringify(merged), req.tenantId]);
     await c.query(
-      `INSERT INTO audit_log (tenant_id, user_id, action, entity, entity_id, data) VALUES ($1,$2,'settings.update','tenant',$1,$3)`,
+      `INSERT INTO audit_log (tenant_id, user_id, action, entity, entity_id, data) VALUES ($1::uuid,$2,'settings.update','tenant',$1::text,$3)`,
       [req.tenantId, req.user.id, JSON.stringify(b)]);
     return row;
   });
   res.json({ account: t });
+}));
+
+/** The operator's own subscription payments to Jatelo. */
+settings.get('/billing', requireRole('owner', 'manager'), h(async (req, res) => {
+  const { rows } = await asOwner((c) => c.query(
+    `SELECT tier, months, amount, paid_until, reference, created_at FROM tenant_billing WHERE tenant_id = $1 ORDER BY created_at DESC`,
+    [req.tenantId]));
+  res.json({ billing: rows });
 }));
 
 // ───────────── Staff ─────────────

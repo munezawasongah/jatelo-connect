@@ -13,6 +13,7 @@ and run their MikroTik routers from one dashboard.
 | `api/` | Node.js API (Express): auth, routers, vouchers, subscribers, agents, staff |
 | `api/src/portal/` | Captive portal, PPPoE renewal and sign-up pages (French, Kirundi, English) |
 | `api/src/worker.js` | Background worker: SMS delivery, expiries, reminders, router health, bandwidth, account status |
+| `dashboard/` | Operator dashboard (React + Vite): home, live users, routers, codes, subscribers, agents, payments, reports, settings, Jatelo admin |
 | `caddy/Caddyfile` | HTTPS for the dashboard, API and portal domains; walled-subscriber redirect |
 | `docker-compose.yml` | Production stack: PostgreSQL, API, worker, FreeRADIUS, Caddy |
 
@@ -68,6 +69,17 @@ node src/migrate.js
 npm test                     # integration tests against a real PostgreSQL
 npm run dev
 ```
+
+### Dashboard
+
+```bash
+cd dashboard
+npm install
+npm run dev        # http://localhost:5173, proxies /api to the API on :8080
+```
+
+Demo data: `node src/seed-demo.js` (in `api/`) creates `demo@jateloconnect.com` / `demo12345`.
+Jatelo staff account: `node src/cli.js create-admin <email> <password> [name]`.
 
 ## Roles
 

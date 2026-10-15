@@ -115,7 +115,7 @@ test('agents: float top-up, purchase at discount, insufficient balance', async (
   assert.equal(buy.body.balance, 1400);
   const tooMuch = await call('POST', '/api/agent/vouchers', { package_id: state.pkgDay.id, quantity: 1 }, agentToken);
   assert.equal(tooMuch.status, 409);
-  assert.equal((await call('GET', '/api/routers', null, agentToken)).status, 200, 'agents can read');
+  assert.equal((await call('GET', '/api/routers', null, agentToken)).status, 403, 'agents only see the agent space');
   assert.equal((await call('POST', '/api/packages', { name: 'x', price: 1, duration_minutes: 1 }, agentToken)).status, 403);
 });
 

@@ -20,7 +20,10 @@ import { customers, subscriptions } from './routes/subscribers.js';
 import { settings, staff, auditLog } from './routes/account.js';
 import { portalPages, portalApi } from './routes/portal.js';
 import { payments, paymentChannels, smsGateways, serviceRequests, smsWebhook } from './routes/payments.js';
+import { dashboard, sessions, alerts, reports, events, routerTraffic } from './routes/dashboard.js';
+import { admin } from './routes/admin.js';
 import { syncAllPeers } from './services/wireguard.js';
+import { ensureListener } from './services/events.js';
 
 export const logger = pino({
   level: config.LOG_LEVEL,
@@ -62,8 +65,26 @@ export function createApp() {
 
   app.use('/api/auth', authRoutes);
 
+  // EventSource cannot send headers: the stream takes its access token from the query string
+  app.use('/api/events', (req, _res, next) => {
+    if (req.query.access_token && !req.headers.authorization) req.headers.authorization = `Bearer ${req.query.access_token}`;
+    if (req.query.tenant && !req.headers['x-tenant-id']) req.headers['x-tenant-id'] = String(req.query.tenant); // honoured for Jatelo staff only
+    next();
+  });
+
+  app.use('/api/admin', requireAuth, requireRole(), admin); // platform_admin only
+
   const tenant = express.Router();
   tenant.use(requireAuth, requireTenant);
+  // Agents only see their own voucher float and sales
+  tenant.use((req, _res, next) => (req.user.role === 'agent' && !req.path.startsWith('/agent')
+    ? next(new HttpError(403, 'forbidden', 'Agents can only use the agent space')) : next()));
+  tenant.use('/dashboard', dashboard);
+  tenant.use('/sessions', sessions);
+  tenant.use('/alerts', alerts);
+  tenant.use('/reports', reports);
+  tenant.use('/events', events);
+  tenant.get('/routers/:id/traffic', routerTraffic);
   tenant.use('/settings', settings);
   tenant.use('/staff', staff);
   tenant.use('/audit', auditLog);
@@ -103,6 +124,7 @@ async function main() {
   if (process.env.RUN_MIGRATIONS !== 'false') await migrate(config.DATABASE_OWNER_URL, logger);
   await setRolePasswords(config.DATABASE_OWNER_URL);
   await syncAllPeers(logger).catch((e) => logger.error({ err: e.message }, 'wireguard sync failed'));
+  await ensureListener(logger).catch((e) => logger.error({ err: e.message }, 'event listener failed'));
   const app = createApp();
   const server = app.listen(config.PORT, () => logger.info(`Jatelo Connect API listening on :${config.PORT}`));
   const stop = () => {

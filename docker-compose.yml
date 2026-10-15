@@ -52,13 +52,13 @@ services:
         condition: service_started
 
   caddy:
-    image: caddy:2-alpine
+    build:
+      context: .
+      dockerfile: caddy/Dockerfile
     restart: unless-stopped
     network_mode: host
     env_file: .env
     volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./dashboard/dist:/srv/dashboard:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
