@@ -1,0 +1,79 @@
+# Jatelo Connect — the only virtual server.
+# Auth (1812) and accounting (1813) from routers arriving over the WireGuard tunnel.
+
+server default {
+
+listen {
+	type = auth
+	ipaddr = *
+	port = 1812
+	limit {
+		max_connections = 0
+		lifetime = 0
+		idle_timeout = 30
+	}
+}
+
+listen {
+	type = acct
+	ipaddr = *
+	port = 1813
+}
+
+authorize {
+	filter_username
+	preprocess
+
+	# Voucher codes are matched case-insensitively in SQL; the portal always
+	# submits them upper-case so PAP/CHAP compare against the stored code.
+	chap
+	mschap
+	suffix
+	sql
+	if (notfound) {
+		reject
+	}
+	expiration
+	logintime
+	pap
+}
+
+authenticate {
+	Auth-Type PAP {
+		pap
+	}
+	Auth-Type CHAP {
+		chap
+	}
+	Auth-Type MS-CHAP {
+		mschap
+	}
+	mschap
+}
+
+preacct {
+	preprocess
+	acct_unique
+	suffix
+}
+
+accounting {
+	sql
+	attr_filter.accounting_response
+}
+
+session {
+}
+
+post-auth {
+	sql
+	remove_reply_message_if_eap
+
+	Post-Auth-Type REJECT {
+		sql
+		attr_filter.access_reject
+		remove_reply_message_if_eap
+	}
+}
+
+}

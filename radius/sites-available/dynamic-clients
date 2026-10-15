@@ -1,0 +1,14 @@
+# Jatelo Connect — resolve RADIUS clients for non-tunnel devices from the nas table.
+server dynamic_clients {
+	authorize {
+		if ("%{sql: SELECT count(*) FROM nas WHERE nasname = '%{Packet-Src-IP-Address}'}" == 1) {
+			update control {
+				&FreeRADIUS-Client-IP-Address = "%{Packet-Src-IP-Address}"
+				&FreeRADIUS-Client-Shortname = "%{sql: SELECT shortname FROM nas WHERE nasname = '%{Packet-Src-IP-Address}'}"
+				&FreeRADIUS-Client-Secret = "%{sql: SELECT secret FROM nas WHERE nasname = '%{Packet-Src-IP-Address}'}"
+				&FreeRADIUS-Client-NAS-Type = "other"
+			}
+			ok
+		}
+	}
+}

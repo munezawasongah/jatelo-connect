@@ -1,0 +1,54 @@
+# Jatelo Connect — production stack on one VPS.
+# The WireGuard hub (wg0, 10.88.0.1/16) runs on the host; RADIUS and the API use host
+# networking so they see routers' real tunnel addresses.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: jatelo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: jatelo
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jatelo -d jatelo"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    restart: unless-stopped
+    network_mode: host
+    cap_add: [NET_ADMIN]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://jc_app:${APP_DB_PASSWORD}@127.0.0.1:5432/jatelo
+      DATABASE_OWNER_URL: postgres://jatelo:${POSTGRES_PASSWORD}@127.0.0.1:5432/jatelo
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  radius:
+    build: ./radius
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      RADIUS_DB_HOST: 127.0.0.1
+      RADIUS_DB_PORT: "5432"
+      RADIUS_DB_USER: jc_radius
+      RADIUS_DB_PASSWORD: ${RADIUS_DB_PASSWORD}
+      RADIUS_DB_NAME: jatelo
+      RADIUS_SECRET: ${RADIUS_SECRET}
+    depends_on:
+      api:
+        condition: service_started
+
+volumes:
+  pgdata:

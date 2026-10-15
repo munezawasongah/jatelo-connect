@@ -1,0 +1,52 @@
+# Jatelo Connect — rlm_sql for PostgreSQL.
+# Connection details come from environment variables set in docker-compose.
+
+sql {
+	dialect = "postgresql"
+	driver = "rlm_sql_${dialect}"
+
+	postgresql {
+		send_application_name = yes
+	}
+
+	server = $ENV{RADIUS_DB_HOST}
+	port = $ENV{RADIUS_DB_PORT}
+	login = $ENV{RADIUS_DB_USER}
+	password = $ENV{RADIUS_DB_PASSWORD}
+	radius_db = $ENV{RADIUS_DB_NAME}
+
+	acct_table1 = "radacct"
+	acct_table2 = "radacct"
+	postauth_table = "radpostauth"
+	authcheck_table = "radcheck"
+	groupcheck_table = "radgroupcheck"
+	authreply_table = "radreply"
+	groupreply_table = "radgroupreply"
+	usergroup_table = "radusergroup"
+
+	# Groups are not used: plans and packages are resolved in SQL functions
+	read_groups = no
+	read_profiles = no
+
+	# RADIUS clients are defined by subnet in clients.conf (the WireGuard range)
+	read_clients = no
+	client_table = "nas"
+
+	delete_stale_sessions = yes
+
+	pool {
+		start = 4
+		min = 4
+		max = 32
+		spare = 8
+		uses = 0
+		retry_delay = 5
+		lifetime = 0
+		idle_timeout = 60
+		max_retries = 3
+	}
+
+	group_attribute = "SQL-Group"
+
+	$INCLUDE ${modconfdir}/${.:name}/main/${dialect}/queries.conf
+}
